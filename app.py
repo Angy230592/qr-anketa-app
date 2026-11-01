@@ -241,7 +241,7 @@ def otp_post():
     session["phone"] = phone
     session.pop("pending_phone", None)
     session.pop("otp_preview", None)
-    session["started_at"] = datetime.now().isoformat(timespec="seconds")
+    session.pop("started_at", None)
     return redirect(url_for("survey"))
 
 
@@ -253,7 +253,7 @@ def survey():
     questions = db.list_questions()
     if not questions:
         abort(503, "Вопросы ещё не загружены")
-    session.setdefault("started_at", datetime.now().isoformat(timespec="seconds"))
+    session["started_at"] = datetime.now().isoformat(timespec="seconds")
     try:
         question_seconds = max(0, int(db.get_setting("question_seconds", "40") or "40"))
     except ValueError:
@@ -302,7 +302,15 @@ def submit():
     started_raw = session.get("started_at") or datetime.now().isoformat(timespec="seconds")
     started_at = datetime.fromisoformat(started_raw)
     submitted_at = datetime.now()
-    duration = max(0, int((submitted_at - started_at).total_seconds()))
+    wall = max(0, int((submitted_at - started_at).total_seconds()))
+    try:
+        spent = int(request.form.get("spent_seconds") or "0")
+    except ValueError:
+        spent = 0
+    if spent > 0:
+        duration = min(spent, wall if wall else spent)
+    else:
+        duration = wall
     percent = round(100 * correct_n / total_n, 1) if total_n else None
     db.save_submission(
         started_at,

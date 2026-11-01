@@ -3,6 +3,7 @@
 {% block body_class %}quiz-body{% endblock %}
 {% block content %}
 <form method="post" action="{{ url_for('submit') }}" id="survey-form" data-seconds="{{ question_seconds }}">
+  <input type="hidden" name="spent_seconds" id="spent-seconds" value="0">
   <div class="quiz-layout">
     <section class="card quiz-main">
       <p class="eyebrow" id="quiz-kicker">Опрос</p>
@@ -66,5 +67,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='survey.js') }}?v=quiz1"></script>
+<script src="{{ url_for('static', filename='survey.js') }}?v=quiz2"></script>
 {% endblock %}

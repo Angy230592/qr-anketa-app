@@ -20,12 +20,12 @@ body {
   min-height: 100vh;
   background-color: var(--bg);
   background-image:
-    linear-gradient(180deg, rgba(243, 239, 230, 0.82) 0%, rgba(243, 239, 230, 0.9) 100%),
+    linear-gradient(180deg, rgba(243, 239, 230, 0.42) 0%, rgba(243, 239, 230, 0.58) 100%),
     url("hippocratic-cups.jpg");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  background-attachment: scroll;
+  background-attachment: fixed;
   color: var(--ink);
   line-height: 1.45;
 }
@@ -199,8 +199,9 @@ th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 8px 6p
 @media (max-width: 799px) {
   body {
     background-image:
-      linear-gradient(180deg, rgba(243, 239, 230, 0.84) 0%, rgba(243, 239, 230, 0.92) 100%),
+      linear-gradient(180deg, rgba(243, 239, 230, 0.48) 0%, rgba(243, 239, 230, 0.62) 100%),
       url("hippocratic-cups-sm.jpg");
+    background-attachment: scroll;
   }
 }
 

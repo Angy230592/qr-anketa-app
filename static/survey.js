@@ -24,6 +24,29 @@ if (form) {
   let reviewing = false;
   let remain = limit;
   let tickId = null;
+  let spentMs = 0;
+  let sliceStart = 0;
+  let sliceOn = false;
+  const spentInput = document.getElementById("spent-seconds");
+
+  function pauseSlice() {
+    if (!sliceOn) return;
+    spentMs += Date.now() - sliceStart;
+    sliceOn = false;
+  }
+
+  function resumeSlice() {
+    pauseSlice();
+    sliceStart = Date.now();
+    sliceOn = true;
+  }
+
+  function writeSpent() {
+    pauseSlice();
+    const seconds = Math.max(0, Math.round(spentMs / 1000));
+    if (spentInput) spentInput.value = String(seconds);
+    return seconds;
+  }
 
   if (timerProgress) {
     timerProgress.style.strokeDasharray = String(CIRC);
@@ -106,6 +129,7 @@ if (form) {
     hintEl.textContent = typeHint(slide);
     kickerEl.textContent = reviewing ? "Пропущенные" : "Опрос";
     updateAnswerLabel();
+    resumeSlice();
     startTimer();
   }
 
@@ -117,6 +141,7 @@ if (form) {
     }
     if (skipped.length) {
       stopTimer();
+      pauseSlice();
       quizMain.hidden = true;
       if (quizSide) quizSide.hidden = true;
       skippedPanel.hidden = false;
@@ -127,6 +152,7 @@ if (form) {
       return;
     }
     stopTimer();
+    writeSpent();
     form.submit();
   }
 
@@ -148,6 +174,9 @@ if (form) {
 
   skipBtn?.addEventListener("click", () => skipCurrent());
   answerBtn?.addEventListener("click", () => answerCurrent());
+  form.addEventListener("submit", () => {
+    writeSpent();
+  });
   reviewBtn?.addEventListener("click", () => {
     queue = [...skipped];
     skipped = [];
