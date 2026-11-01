@@ -4,11 +4,12 @@
 <section class="card thanks">
   <p class="eyebrow">Готово</p>
   <h1>Спасибо за ответы</h1>
-  <p class="lead">Анкета сохранена. Пройти её ещё раз с этого номера нельзя.</p>
+  <p class="lead">Анкета сохранена. Если вопросы обновят, можно пройти ещё раз с того же номера.</p>
   {% if duration is not none %}
     <ul class="stats">
       <li>Время: <strong>{{ duration|duration }}</strong></li>
     </ul>
   {% endif %}
+  <p><a class="btn primary" href="{{ url_for('survey') }}">Пройти ещё раз</a></p>
 </section>
 {% endblock %}

@@ -35,10 +35,15 @@
 
 <section class="card">
   <h2>SMS для входа по телефону</h2>
-  <p class="hint">Ключ API с sms.ru. Пока поле пустое, код подтверждения показывается на экране телефона — для проверки. После сохранения ключа код уйдёт только в SMS.</p>
+  <p class="hint">Сюда нужна не ссылка сайта, а ключ <strong>api_id</strong> из sms.ru. Пока поле пустое, код показывается на экране телефона — для проверки. После сохранения ключа код уйдёт только в SMS.</p>
+  <ol class="q-list">
+    <li>Зарегистрируйтесь на <a href="https://sms.ru" target="_blank" rel="noopener">sms.ru</a> и пополните баланс.</li>
+    <li>Откройте <a href="https://sms.ru/?panel=api" target="_blank" rel="noopener">sms.ru/?panel=api</a> и скопируйте «Ваш api_id».</li>
+    <li>Вставьте api_id в поле ниже и нажмите «Сохранить».</li>
+  </ol>
   <form class="upload" method="post" action="{{ url_for('admin_settings') }}">
     <label>API ID sms.ru
-      <input class="text-input" type="text" name="smsru_api_id" value="{{ smsru_api_id }}" autocomplete="off">
+      <input class="text-input" type="text" name="smsru_api_id" value="{{ smsru_api_id }}" autocomplete="off" placeholder="например 2A4B...">
     </label>
     <button class="btn primary" type="submit">Сохранить</button>
   </form>
@@ -92,6 +97,7 @@
       <summary>
         <span>#{{ s.id }}</span>
         <span>{{ s.phone or 'без номера' }}</span>
+        <span>{% if s.is_retake %}повтор {{ s.attempt_no }}{% else %}1-й раз{% endif %}</span>
         <span>{{ s.submitted_at.replace('T', ' ') }}</span>
         <span>{{ s.duration_seconds|duration }}</span>
         <span>{% if s.score_percent is not none %}{{ s.score_percent }}%{% else %}без оценки{% endif %}</span>

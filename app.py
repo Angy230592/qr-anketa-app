@@ -140,8 +140,6 @@ def respondent_required(fn):
         phone = session.get("phone")
         if not phone:
             return redirect(url_for("phone_login"))
-        if db.phone_submitted(phone):
-            return redirect(url_for("already"))
         return fn(*args, **kwargs)
 
     return wrapper
@@ -178,8 +176,6 @@ def add_headers(response):
 @app.get("/login")
 def phone_login():
     if session.get("phone"):
-        if db.phone_submitted(session["phone"]):
-            return redirect(url_for("already"))
         return redirect(url_for("survey"))
     pending = session.get("pending_phone", "")
     return render_template("phone.html", phone_local=national_part(pending))
@@ -195,9 +191,6 @@ def phone_login_post():
     except ValueError as exc:
         flash(str(exc), "error")
         return render_template("phone.html", phone_local=national_part(raw))
-    if db.phone_submitted(phone):
-        session["phone"] = phone
-        return redirect(url_for("already"))
     try:
         code, reused = db.create_otp(phone)
     except ValueError as exc:
@@ -257,8 +250,6 @@ def survey():
     phone = session.get("phone")
     if not phone:
         return redirect(url_for("phone_login"))
-    if db.phone_submitted(phone):
-        return redirect(url_for("already"))
     questions = db.list_questions()
     if not questions:
         abort(503, "Вопросы ещё не загружены")
@@ -307,21 +298,17 @@ def submit():
     submitted_at = datetime.now()
     duration = max(0, int((submitted_at - started_at).total_seconds()))
     percent = round(100 * correct_n / total_n, 1) if total_n else None
-    try:
-        db.save_submission(
-            started_at,
-            submitted_at,
-            duration,
-            percent,
-            correct_n,
-            total_n,
-            request.headers.get("X-Forwarded-For", request.remote_addr),
-            answers,
-            session.get("phone"),
-        )
-    except Exception:
-        flash("Эта анкета с вашего номера уже сохранена", "error")
-        return redirect(url_for("already"))
+    db.save_submission(
+        started_at,
+        submitted_at,
+        duration,
+        percent,
+        correct_n,
+        total_n,
+        request.headers.get("X-Forwarded-For", request.remote_addr),
+        answers,
+        session.get("phone"),
+    )
     session.pop("started_at", None)
     session["last_duration"] = duration
     return redirect(url_for("thanks"))
@@ -339,12 +326,7 @@ def thanks():
 
 @app.get("/already")
 def already():
-    phone = session.get("phone")
-    if not phone:
-        return redirect(url_for("phone_login"))
-    if not db.phone_submitted(phone):
-        return redirect(url_for("survey"))
-    return render_template("already.html", phone_label=format_phone(phone))
+    return redirect(url_for("survey"))
 
 
 @app.get("/qr")
@@ -480,6 +462,8 @@ def admin_export():
         [
             "ID",
             "Телефон",
+            "Повторное прохождение",
+            "№ прохождения",
             "Начало",
             "Отправка",
             "Время (сек)",
@@ -495,6 +479,8 @@ def admin_export():
             [
                 s["id"],
                 s.get("phone") or "",
+                "да" if s.get("is_retake") else "нет",
+                s.get("attempt_no") or 1,
                 s["started_at"],
                 s["submitted_at"],
                 s["duration_seconds"],
@@ -505,7 +491,20 @@ def admin_export():
             ]
         )
     detail = wb.create_sheet("Ответы")
-    detail.append(["ID анкеты", "Телефон", "Время отправки", "%", "Вопрос", "Тип", "Ответ пользователя", "Правильно"])
+    detail.append(
+        [
+            "ID анкеты",
+            "Телефон",
+            "Повторное прохождение",
+            "№ прохождения",
+            "Время отправки",
+            "%",
+            "Вопрос",
+            "Тип",
+            "Ответ пользователя",
+            "Правильно",
+        ]
+    )
     for s in submissions:
         for a in s["answers"]:
             flag = "" if a["is_correct"] is None else ("да" if a["is_correct"] else "нет")
@@ -513,6 +512,8 @@ def admin_export():
                 [
                     s["id"],
                     s.get("phone") or "",
+                    "да" if s.get("is_retake") else "нет",
+                    s.get("attempt_no") or 1,
                     s["submitted_at"],
                     s["score_percent"],
                     a["prompt"],

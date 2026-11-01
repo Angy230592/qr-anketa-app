@@ -189,7 +189,7 @@ h2 { font-size: 1.15rem; }
 .submission { border-top: 1px solid var(--line); padding: 10px 0; }
 .submission summary {
   display: grid;
-  grid-template-columns: 50px 1fr 1fr auto auto;
+  grid-template-columns: 50px 1fr auto 1fr auto auto;
   gap: 10px;
   cursor: pointer;
 }

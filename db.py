@@ -80,9 +80,7 @@ def init_db(admin_username: str, admin_password: str) -> None:
         """
     )
     _ensure_column(conn, "submissions", "phone", "TEXT")
-    conn.execute(
-        "CREATE UNIQUE INDEX IF NOT EXISTS submissions_phone_unique ON submissions(phone) WHERE phone IS NOT NULL AND phone != ''"
-    )
+    conn.execute("DROP INDEX IF EXISTS submissions_phone_unique")
     row = conn.execute("SELECT value FROM settings WHERE key='admin_username'").fetchone()
     if not row:
         conn.execute(
@@ -161,6 +159,27 @@ def phone_submitted(phone: str) -> bool:
     row = conn.execute("SELECT id FROM submissions WHERE phone=?", (phone,)).fetchone()
     conn.close()
     return row is not None
+
+
+def _mark_retakes(conn: sqlite3.Connection, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    phones = sorted({(row.get("phone") or "").strip() for row in rows if (row.get("phone") or "").strip()})
+    attempt_by_id: dict[int, int] = {}
+    if phones:
+        placeholders = ",".join("?" * len(phones))
+        history = conn.execute(
+            f"SELECT id, phone FROM submissions WHERE phone IN ({placeholders}) ORDER BY submitted_at, id",
+            phones,
+        ).fetchall()
+        seen: dict[str, int] = {}
+        for item in history:
+            n = seen.get(item["phone"], 0) + 1
+            seen[item["phone"]] = n
+            attempt_by_id[item["id"]] = n
+    for row in rows:
+        n = attempt_by_id.get(row["id"], 1)
+        row["attempt_no"] = n
+        row["is_retake"] = n > 1
+    return rows
 
 
 def _hash_code(phone: str, code: str) -> str:
@@ -295,6 +314,7 @@ def list_submissions(date_from: str | None = None, date_to: str | None = None) -
         params.append(date_to + " 23:59:59" if len(date_to) == 10 else date_to)
     query += " ORDER BY submitted_at DESC"
     rows = [dict(r) for r in conn.execute(query, params).fetchall()]
+    _mark_retakes(conn, rows)
     for row in rows:
         row["answers"] = [
             dict(a)
