@@ -1,49 +1,70 @@
 {% extends "base.html" %}
 {% block title %}Анкета{% endblock %}
+{% block body_class %}quiz-body{% endblock %}
 {% block content %}
-<header class="hero">
-  <p class="eyebrow">Опрос</p>
-  <h1>Короткая анкета</h1>
-  <p class="lead">Ответьте на вопросы. Время прохождения сохранится автоматически.</p>
-  <div class="meta">
-    <span>{{ questions|length }} вопросов</span>
-    <span id="timer">0:00</span>
-  </div>
-</header>
+<form method="post" action="{{ url_for('submit') }}" id="survey-form" data-seconds="{{ question_seconds }}">
+  <div class="quiz-layout">
+    <section class="card quiz-main">
+      <p class="eyebrow" id="quiz-kicker">Опрос</p>
+      <p class="quiz-progress" id="quiz-progress">Вопрос 1 из {{ questions|length }}</p>
+      <p class="hint" id="quiz-hint"></p>
 
-<form class="card form" method="post" action="{{ url_for('submit') }}" id="survey-form">
-  {% for q in questions %}
-    <fieldset class="question" data-type="{{ q.qtype }}">
-      <legend>
-        <span class="num">{{ loop.index }}</span>
-        {{ q.prompt }}
-        {% if q.qtype == 'open' %}
-          <em>открытый ответ</em>
-        {% elif q.qtype == 'single' %}
-          <em>один вариант</em>
-        {% else %}
-          <em>несколько вариантов</em>
-        {% endif %}
-      </legend>
+      <div id="quiz-stage">
+        {% for q in questions %}
+          <article class="quiz-slide" data-index="{{ loop.index0 }}" data-id="{{ q.id }}" data-type="{{ q.qtype }}" hidden>
+            <h2 class="quiz-question">{{ q.prompt }}</h2>
+            {% if q.qtype == 'open' %}
+              <input class="text-input quiz-open" type="text" name="q-{{ q.id }}" maxlength="500" placeholder="Ваш ответ" autocomplete="off">
+            {% else %}
+              <div class="quiz-options" data-multiple="{{ 1 if q.qtype == 'multiple' else 0 }}">
+                {% for opt in q.options %}
+                  <label class="quiz-option">
+                    <input type="{% if q.qtype == 'single' %}radio{% else %}checkbox{% endif %}" name="q-{{ q.id }}" value="{{ opt }}">
+                    <span class="quiz-letter">{{ 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[loop.index0] }}</span>
+                    <span class="quiz-option-text">{{ opt }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
 
-      {% if q.qtype == 'open' %}
-        <input class="text-input" type="text" name="q-{{ q.id }}" maxlength="500" placeholder="Ваш ответ" autocomplete="off" required>
-      {% else %}
-        <div class="options">
-          {% for opt in q.options %}
-            <label class="option">
-              <input type="checkbox" name="q-{{ q.id }}" value="{{ opt }}" {% if q.qtype == 'single' %}data-single="1"{% endif %}>
-              <span>{{ opt }}</span>
-            </label>
-          {% endfor %}
+      <div class="quiz-actions" id="quiz-actions">
+        <button class="btn ghost quiz-skip" type="button" id="skip-btn">Пропустить</button>
+        <button class="btn primary quiz-answer" type="button" id="answer-btn">
+          Ответить
+          <small id="picked-count"></small>
+        </button>
+      </div>
+    </section>
+
+    <aside class="quiz-side">
+      <article class="card timer-card" id="timer-card" {% if not question_seconds %}hidden{% endif %}>
+        <p class="timer-label">Время на ответ</p>
+        <div class="timer-ring">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="timer-track" cx="60" cy="60" r="52"></circle>
+            <circle class="timer-progress" id="timer-progress" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <strong id="timer-num">{{ question_seconds }}</strong>
         </div>
-      {% endif %}
-    </fieldset>
-  {% endfor %}
-  <button class="btn primary wide" type="submit">Отправить</button>
+      </article>
+    </aside>
+  </div>
+
+  <section class="card quiz-review" id="skipped-panel" hidden>
+    <p class="eyebrow">Почти готово</p>
+    <h1>Ответить на пропущенные?</h1>
+    <p class="lead" id="skipped-lead">Есть вопросы без ответа.</p>
+    <div class="quiz-actions">
+      <button class="btn ghost" type="submit" id="finish-btn">Завершить без них</button>
+      <button class="btn primary" type="button" id="review-btn">Ответить на пропущенные</button>
+    </div>
+  </section>
 </form>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='survey.js') }}"></script>
+<script src="{{ url_for('static', filename='survey.js') }}?v=quiz1"></script>
 {% endblock %}

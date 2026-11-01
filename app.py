@@ -254,7 +254,15 @@ def survey():
     if not questions:
         abort(503, "Вопросы ещё не загружены")
     session.setdefault("started_at", datetime.now().isoformat(timespec="seconds"))
-    return render_template("survey.html", questions=questions)
+    try:
+        question_seconds = max(0, int(db.get_setting("question_seconds", "40") or "40"))
+    except ValueError:
+        question_seconds = 40
+    return render_template(
+        "survey.html",
+        questions=questions,
+        question_seconds=question_seconds,
+    )
 
 
 @app.post("/submit")
@@ -269,18 +277,16 @@ def submit():
     for q in questions:
         if q["qtype"] == "open":
             selected = [request.form.get(f"q-{q['id']}", "").strip()]
-            if not selected[0]:
-                flash("Заполните все открытые вопросы", "error")
-                return redirect(url_for("survey"))
         else:
-            selected = request.form.getlist(f"q-{q['id']}")
-            if not selected:
-                flash("Отметьте ответы во всех вопросах с вариантами", "error")
-                return redirect(url_for("survey"))
-            if q["qtype"] == "single" and len(selected) != 1:
-                flash("В вопросе с одним ответом можно выбрать только один вариант", "error")
-                return redirect(url_for("survey"))
-        text, is_correct = grade(q, selected)
+            selected = [item for item in request.form.getlist(f"q-{q['id']}") if item.strip()]
+            if q["qtype"] == "single" and len(selected) > 1:
+                selected = selected[:1]
+        skipped = not selected or selected == [""]
+        if skipped:
+            text = "пропущен"
+            _, is_correct = grade(q, [""] if q["qtype"] == "open" else [])
+        else:
+            text, is_correct = grade(q, selected)
         if is_correct is not None:
             total_n += 1
             correct_n += is_correct
@@ -390,6 +396,7 @@ def admin_home():
         link=survey_url(),
         public=hosted_public(),
         smsru_api_id=db.get_setting("smsru_api_id"),
+        question_seconds=db.get_setting("question_seconds", "40"),
     )
 
 
@@ -397,7 +404,13 @@ def admin_home():
 @admin_required
 def admin_settings():
     db.set_setting("smsru_api_id", request.form.get("smsru_api_id", "").strip())
-    flash("Настройки SMS сохранены", "ok")
+    raw_seconds = (request.form.get("question_seconds") or "40").strip()
+    try:
+        seconds = max(0, min(600, int(raw_seconds)))
+    except ValueError:
+        seconds = 40
+    db.set_setting("question_seconds", str(seconds))
+    flash("Настройки сохранены", "ok")
     return redirect(url_for("admin_home"))
 
 

@@ -45,8 +45,12 @@
     <label>API ID sms.ru
       <input class="text-input" type="text" name="smsru_api_id" value="{{ smsru_api_id }}" autocomplete="off" placeholder="например 2A4B...">
     </label>
+    <label>Секунд на вопрос
+      <input class="text-input" type="number" name="question_seconds" min="0" max="600" value="{{ question_seconds }}" title="0 — без таймера">
+    </label>
     <button class="btn primary" type="submit">Сохранить</button>
   </form>
+  <p class="hint">Таймер сбоку на каждом вопросе. 0 — без ограничения по времени.</p>
 </section>
 
 <section class="card">
