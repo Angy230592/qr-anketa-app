@@ -233,14 +233,15 @@ th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 8px 6p
 .quiz-option {
   position: relative;
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: auto 1fr;
   min-height: 120px;
   padding: 16px 16px 12px;
-  border: 1px solid var(--line);
+  border: 2px solid var(--accent);
   border-radius: 18px;
-  background: linear-gradient(180deg, #3f7a5c 0%, #2f6b4f 100%);
-  color: #fff;
+  background: var(--card);
+  color: var(--ink);
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 .quiz-option input {
   position: absolute;
@@ -254,19 +255,25 @@ th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 8px 6p
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: rgba(255,255,255,0.16);
+  background: #e7f0e4;
+  color: var(--accent);
   font-weight: 700;
-  margin-top: 8px;
 }
 .quiz-option-text {
   font-size: 1.05rem;
   font-weight: 650;
-  align-self: center;
+  align-self: end;
 }
 .quiz-option:has(input:checked),
 .quiz-option.is-on {
-  outline: 3px solid #c9e6d3;
-  box-shadow: 0 0 0 3px rgba(47, 107, 79, 0.35);
+  background: linear-gradient(180deg, #3f7a5c 0%, #2f6b4f 100%);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(47, 107, 79, 0.28);
+}
+.quiz-option:has(input:checked) .quiz-letter,
+.quiz-option.is-on .quiz-letter {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
 }
 .quiz-actions {
   display: flex;
