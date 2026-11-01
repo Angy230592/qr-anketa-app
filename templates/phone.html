@@ -5,9 +5,12 @@
   <p class="eyebrow">Анкета</p>
   <h1>Вход по номеру телефона</h1>
   <p class="lead">На номер придёт код подтверждения. Пройти анкету можно только один раз.</p>
-  <form method="post" action="{{ url_for('phone_login_post') }}" class="form">
+  <form method="post" action="{{ url_for('phone_login_post') }}" class="form phone-form">
     <label>Номер телефона
-      <input class="text-input" type="tel" name="phone" inputmode="tel" autocomplete="tel" placeholder="+7 900 000-00-00" value="{{ phone or '' }}" required>
+      <span class="phone-row">
+        <span class="phone-prefix">+7</span>
+        <input class="text-input" type="tel" name="phone_local" inputmode="numeric" autocomplete="tel-national" placeholder="900 000-00-00" value="{{ phone_local or '' }}" maxlength="10" pattern="[0-9]{10}" required aria-label="Номер без плюс 7" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)">
+      </span>
     </label>
     <button class="btn primary wide" type="submit">Получить код</button>
   </form>

@@ -15,13 +15,13 @@
 <section class="grid-2">
   <article class="card">
     <h2>QR и адрес</h2>
-    <img class="qr small" src="{{ url_for('qr_png') }}" alt="QR">
+    <img class="qr small" src="{{ url_for('qr_png', v=link) }}" alt="QR">
     <p class="link"><a href="{{ link }}">{{ link }}</a></p>
     <p><a class="btn" href="{{ url_for('qr_page') }}">Открыть QR-страницу</a></p>
     {% if not public %}
       <p class="hint">Публичный туннель ещё не готов — телефон должен быть в той же сети.</p>
     {% endif %}
-    <p class="hint">Адрес закреплён за постоянным именем туннеля и не должен меняться после перезапуска.</p>
+    <p class="hint">Этот QR открывает анкету по адресу выше. Распечатайте или покажите с экрана.</p>
   </article>
   <article class="card">
     <h2>Сводка</h2>

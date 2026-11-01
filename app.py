@@ -13,6 +13,7 @@ from flask import (
     Flask,
     abort,
     flash,
+    has_request_context,
     redirect,
     render_template,
     request,
@@ -25,7 +26,7 @@ from waitress import serve
 from werkzeug.utils import secure_filename
 
 import db
-from phone import format_phone, normalize_phone, send_sms
+from phone import format_phone, national_part, normalize_phone, send_sms
 from questions_io import parse_txt, parse_upload, questions_to_xlsx
 from tunnel import public_url, start_tunnel
 
@@ -88,7 +89,31 @@ def lan_ip() -> str:
         sock.close()
 
 
+def _request_public_base() -> str:
+    if not has_request_context():
+        return ""
+    host = (request.host or "").strip()
+    if not host:
+        return ""
+    hostname = host.split(":")[0].lower()
+    if hostname in {"127.0.0.1", "localhost", "0.0.0.0"}:
+        return ""
+    proto = (request.headers.get("X-Forwarded-Proto") or request.scheme or "http").split(",")[0].strip()
+    return f"{proto}://{host}".rstrip("/")
+
+
+def hosted_public() -> bool:
+    return bool(
+        _request_public_base()
+        or os.environ.get("PUBLIC_URL", "").strip()
+        or os.environ.get("DISABLE_TUNNEL")
+    )
+
+
 def survey_base_url() -> str:
+    live = _request_public_base()
+    if live:
+        return live
     hosted = os.environ.get("PUBLIC_URL", "").strip()
     if hosted:
         return hosted.rstrip("/")
@@ -156,16 +181,20 @@ def phone_login():
         if db.phone_submitted(session["phone"]):
             return redirect(url_for("already"))
         return redirect(url_for("survey"))
-    return render_template("phone.html", phone=session.get("pending_phone", ""))
+    pending = session.get("pending_phone", "")
+    return render_template("phone.html", phone_local=national_part(pending))
 
 
 @app.post("/login")
 def phone_login_post():
+    raw = request.form.get("phone_local")
+    if raw is None:
+        raw = request.form.get("phone", "")
     try:
-        phone = normalize_phone(request.form.get("phone", ""))
+        phone = normalize_phone(raw)
     except ValueError as exc:
         flash(str(exc), "error")
-        return render_template("phone.html", phone=request.form.get("phone", ""))
+        return render_template("phone.html", phone_local=national_part(raw))
     if db.phone_submitted(phone):
         session["phone"] = phone
         return redirect(url_for("already"))
@@ -173,7 +202,7 @@ def phone_login_post():
         code, reused = db.create_otp(phone)
     except ValueError as exc:
         flash(str(exc), "error")
-        return render_template("phone.html", phone=phone)
+        return render_template("phone.html", phone_local=national_part(phone))
     session["pending_phone"] = phone
     session.pop("otp_preview", None)
     if reused:
@@ -184,7 +213,7 @@ def phone_login_post():
         ok, err = send_sms(api_id, phone, f"Код для анкеты: {code}")
         if not ok:
             flash(f"Не удалось отправить SMS: {err}", "error")
-            return render_template("phone.html", phone=phone)
+            return render_template("phone.html", phone_local=national_part(phone))
     else:
         session["otp_preview"] = code
     return redirect(url_for("otp"))
@@ -320,7 +349,12 @@ def already():
 
 @app.get("/qr")
 def qr_page():
-    return render_template("qr.html", link=survey_url(), public=bool(public_url()), lan=f"http://{lan_ip()}:{PORT}/")
+    return render_template(
+        "qr.html",
+        link=survey_url(),
+        public=hosted_public(),
+        lan=f"http://{lan_ip()}:{PORT}/",
+    )
 
 
 @app.get("/qr.png")
@@ -329,7 +363,9 @@ def qr_png():
     buf = BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
-    return send_file(buf, mimetype="image/png")
+    resp = send_file(buf, mimetype="image/png")
+    resp.headers["Cache-Control"] = "no-store, max-age=0"
+    return resp
 
 
 @app.get("/admin/login")
@@ -370,7 +406,7 @@ def admin_home():
         date_from=date_from,
         date_to=date_to,
         link=survey_url(),
-        public=bool(public_url()),
+        public=hosted_public(),
         smsru_api_id=db.get_setting("smsru_api_id"),
     )
 

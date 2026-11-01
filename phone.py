@@ -8,15 +8,28 @@ import urllib.parse
 import urllib.request
 
 
+def national_part(raw: str) -> str:
+    digits = re.sub(r"\D", "", raw or "")
+    if len(digits) >= 11 and digits[0] in "78":
+        return digits[1:11]
+    if digits.startswith("7"):
+        return digits[1:11]
+    return digits[:10]
+
+
 def normalize_phone(raw: str) -> str:
     digits = re.sub(r"\D", "", raw or "")
     if digits.startswith("8") and len(digits) == 11:
         digits = "7" + digits[1:]
+    elif digits.startswith("7") and len(digits) == 11:
+        pass
     elif len(digits) == 10 and digits.startswith("9"):
+        digits = "7" + digits
+    elif 0 < len(digits) <= 10:
         digits = "7" + digits
     if len(digits) == 11 and digits.startswith("7"):
         return "+" + digits
-    raise ValueError("Введите номер в формате +7 9XX XXX-XX-XX")
+    raise ValueError("Введите 10 цифр номера после +7")
 
 
 def format_phone(phone: str) -> str:

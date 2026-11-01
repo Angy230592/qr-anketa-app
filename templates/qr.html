@@ -4,13 +4,11 @@
 <section class="card qr-card">
   <p class="eyebrow">Сканируйте камерой телефона</p>
   <h1>Открыть анкету</h1>
-  <img class="qr" src="{{ url_for('qr_png') }}" alt="QR-код анкеты">
+  <img class="qr" src="{{ url_for('qr_png', v=link) }}" alt="QR-код анкеты">
   <p class="link">{{ link }}</p>
   {% if not public %}
     <p class="hint">Сейчас это адрес в локальной сети. Телефон должен быть в той же Wi‑Fi сети.</p>
     <p class="hint">LAN: {{ lan }}</p>
-  {% else %}
-    <p class="hint">Публичный адрес идёт через внешний туннель и может быть медленным. Если телефон в той же Wi‑Fi, откройте быстрее: {{ lan }}</p>
   {% endif %}
 </section>
 {% endblock %}
